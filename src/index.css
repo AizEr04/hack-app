@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at top, #1a6b44 0%, #0a3b25 60%, #051c12 100%);
+  background-attachment: fixed;
+  color: #f5f5f4;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-gold text-felt-dark hover:bg-gold-light shadow-lg shadow-black/30;
+  }
+  .btn-secondary {
+    @apply btn bg-white/10 text-white hover:bg-white/20 backdrop-blur;
+  }
+  .btn-danger {
+    @apply btn bg-red-600/90 text-white hover:bg-red-500;
+  }
+  .card {
+    @apply rounded-2xl bg-black/30 backdrop-blur border border-white/10 shadow-xl shadow-black/30 p-5;
+  }
+  .input {
+    @apply w-full rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-gold/60;
+  }
+  .label {
+    @apply block text-sm font-medium text-white/80 mb-1;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}
+
+/* Subtle felt texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 4px 4px;
+  mix-blend-mode: overlay;
+}
+
