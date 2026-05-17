@@ -24,8 +24,13 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NPM_CONFIG_REGISTRY: 'https://registry.npmjs.org'
+          NPM_CONFIG_USERCONFIG: '/dev/null'
 
       # Setze base path automatisch auf /<repo>/
       - name: Configure base path
@@ -51,4 +56,3 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-
