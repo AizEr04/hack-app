@@ -8,6 +8,10 @@ export const loadJassState = (): JassGameState | null => {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as JassGameState;
     if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.teams)) return null;
+    // Migration: remove old wyss field if present
+    if ('wyss' in parsed) {
+      delete (parsed as Record<string, unknown>)['wyss'];
+    }
     return parsed;
   } catch {
     return null;

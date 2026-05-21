@@ -34,12 +34,47 @@
   transform: rotate(180deg);
 }
 
-/* Mittellinie – dick und rot */
+/* Mittellinie – dick und rot, mit Menü-Button */
 .jass-divider {
   height: 6px;
   background: #dc2626;
   flex-shrink: 0;
   box-shadow: 0 0 10px rgba(220, 38, 38, 0.4);
+  position: relative;
+  z-index: 10;
+}
+
+/* Desktop Menü-Button auf der Mittellinie */
+.jass-divider-menu-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 2px solid #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 11;
+}
+
+.jass-divider-menu-btn:hover {
+  background: #dc2626;
+}
+
+.jass-divider-menu-btn:hover .jass-divider-menu-icon {
+  stroke: #fff;
+}
+
+.jass-divider-menu-icon {
+  width: 16px;
+  height: 16px;
+  stroke: #dc2626;
 }
 
 /* Gesamtpunktzahl im Hintergrund */
@@ -58,7 +93,8 @@
   letter-spacing: -2px;
 }
 
-/* Z-Shape SVG Wrapper */
+/* ===== Z-Shape ===== */
+
 .jass-z-wrapper {
   position: absolute;
   inset: 8px;
@@ -70,50 +106,68 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  /* Allow pointer-events only on specific SVG children */
   pointer-events: none;
 }
 
-/* Clickable areas overlaying the SVG lines */
-.jass-z-area {
+/* SVG diagonal hit area – pointer-events enabled on the polygon */
+.jass-diagonal-hitarea {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+/* Line areas for top and bottom horizontal lines */
+.jass-line-area {
   position: absolute;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
   cursor: pointer;
   z-index: 2;
-}
-
-.jass-z-area:active {
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.jass-z-area-top {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 16%;
-  align-items: flex-end;
-  padding-bottom: 2px;
-}
-
-.jass-z-area-diagonal {
-  top: 38%;
-  left: 8%;
-  right: 8%;
-  height: 18%;
+  display: flex;
   align-items: center;
 }
 
-.jass-z-area-bottom {
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 16%;
-  align-items: flex-start;
-  padding-top: 2px;
+.jass-line-area:active {
+  background: rgba(220, 38, 38, 0.08);
 }
 
-/* Rest number */
+/* Top line at y=10% of the wrapper */
+.jass-line-top {
+  top: 4%;
+  left: 0;
+  right: 0;
+  height: 12%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+
+/* Bottom line at y=90% of the wrapper */
+.jass-line-bottom {
+  bottom: 4%;
+  left: 0;
+  right: 0;
+  height: 12%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+
+/* 50er tally marks – left-aligned on the diagonal line */
+.jass-fifty-on-diagonal {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Tally marks positioned on the horizontal lines */
+.jass-tally-on-line {
+  position: relative;
+  z-index: 3;
+}
+
+/* Rest number on the bottom line */
 .jass-rest-number {
   position: absolute;
   right: 12px;
@@ -196,7 +250,7 @@
 }
 
 .tally-x-single .tally-x-line1 {
-  transform: translateX(-50%) rotate(0deg);
+  transform: translateX(-50%) rotate(20deg);
 }
 
 /* ===== Menu ===== */

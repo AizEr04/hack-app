@@ -1,13 +1,13 @@
 /** Jasstafel Types */
 
 export interface JassTeamState {
-  /** Hundert-Striche (je 100 Punkte) */
+  /** Anzahl Striche auf der 100er-Linie (obere Linie) */
   hundreds: number;
-  /** Fünfzig-Striche (je 50 Punkte) */
+  /** Anzahl Striche auf der 50er-Linie (Diagonale) */
   fifties: number;
-  /** Zwanzig-Striche (je 20 Punkte) */
+  /** Anzahl Striche auf der 20er-Linie (untere Linie) */
   twenties: number;
-  /** Rest-Punkte (1-19) */
+  /** Rest-Punkte (1-19), angezeigt als Zahl auf der 20er-Linie */
   rest: number;
 }
 
@@ -22,18 +22,20 @@ export interface JassRoundEntry {
   isMatch: boolean;
   /** Ob es ein Wyss-Eintrag ist (durch Klicken der roten Linien) */
   isWyss: boolean;
+  /** Welche Linie beim Wyss geklickt wurde (0=100, 1=50, 2=20) */
+  wyssLine?: 0 | 1 | 2;
+  /** Für welches Team der Wyss-Eintrag ist */
+  wyssTeam?: TeamIndex;
   /** Timestamp */
   timestamp: number;
 }
 
 export interface JassGameState {
   version: 1;
-  /** Tally-Striche und Rest pro Team */
+  /** Tally-Striche pro Team – werden NICHT aus Total berechnet, sondern direkt geschrieben */
   teams: [JassTeamState, JassTeamState];
-  /** Gesamtpunktzahl pro Team */
+  /** Gesamtpunktzahl pro Team (Summe aller Punkte) */
   totals: [number, number];
-  /** Wyss-Punkte pro Team (durch Klicken der roten Linien) */
-  wyss: [number, number];
   /** Runden-Verlauf für Undo */
   history: JassRoundEntry[];
   /** Erstellungszeitpunkt */

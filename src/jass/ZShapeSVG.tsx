@@ -4,9 +4,12 @@ import { TallyMarks } from './TallyMarks';
 /**
  * SVG-basierte Z-Form für eine Spielhälfte.
  * Die Z-Form besteht aus:
- * - Obere horizontale Linie (100er Striche)
- * - Diagonale von oben-rechts nach unten-links (50er Striche)
- * - Untere horizontale Linie (20er Striche + Rest)
+ * - Obere horizontale Linie (100er Striche darauf)
+ * - Diagonale von rechtem Ende der oberen Linie zum linken Ende der unteren Linie (50er Striche darauf)
+ * - Untere horizontale Linie (20er Striche + Rest darauf)
+ *
+ * Die Diagonale wird als SVG-Polygon klickbar gemacht (da ein HTML-Div nicht diagonal sein kann).
+ * Die 50er-Striche werden auf der Mitte der Diagonale positioniert.
  */
 export function ZShapeSVG({
   team,
@@ -19,7 +22,7 @@ export function ZShapeSVG({
 }) {
   return (
     <div className="jass-z-wrapper">
-      {/* SVG for the Z lines */}
+      {/* SVG for the Z red lines + clickable diagonal polygon */}
       <svg
         className="jass-z-svg"
         viewBox="0 0 100 100"
@@ -27,36 +30,44 @@ export function ZShapeSVG({
         fill="none"
       >
         {/* Top horizontal line */}
-        <line x1="2" y1="8" x2="98" y2="8" stroke="#dc2626" strokeWidth="0.6" />
+        <line x1="2" y1="10" x2="98" y2="10" stroke="#dc2626" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
         {/* Diagonal from top-right to bottom-left */}
-        <line x1="98" y1="8" x2="2" y2="92" stroke="#dc2626" strokeWidth="0.6" />
+        <line x1="98" y1="10" x2="2" y2="90" stroke="#dc2626" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
         {/* Bottom horizontal line */}
-        <line x1="2" y1="92" x2="98" y2="92" stroke="#dc2626" strokeWidth="0.6" />
+        <line x1="2" y1="90" x2="98" y2="90" stroke="#dc2626" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+
+        {/* Clickable diagonal area – a thin polygon along the diagonal line */}
+        <polygon
+          points="93,7 100,7 100,13 7,93 0,93 0,87"
+          fill="transparent"
+          className="jass-diagonal-hitarea"
+          onClick={(e) => { e.stopPropagation(); onLineClick(teamIndex, 1); }}
+        />
       </svg>
 
-      {/* Clickable areas and tally marks */}
-      {/* Top line area (100er) */}
+      {/* Top line (100er) – horizontal click area at y=10% */}
       <div
-        className="jass-z-area jass-z-area-top"
+        className="jass-line-area jass-line-top"
         onClick={(e) => { e.stopPropagation(); onLineClick(teamIndex, 0); }}
       >
-        <TallyMarks count={team.hundreds} type="hundred" />
+        <div className="jass-tally-on-line">
+          <TallyMarks count={team.hundreds} type="hundred" />
+        </div>
       </div>
 
-      {/* Diagonal area (50er) */}
-      <div
-        className="jass-z-area jass-z-area-diagonal"
-        onClick={(e) => { e.stopPropagation(); onLineClick(teamIndex, 1); }}
-      >
+      {/* 50er tally marks – positioned at the center of the diagonal */}
+      <div className="jass-fifty-on-diagonal">
         <TallyMarks count={team.fifties} type="fifty" />
       </div>
 
-      {/* Bottom line area (20er) */}
+      {/* Bottom line (20er) – horizontal click area at y=90% */}
       <div
-        className="jass-z-area jass-z-area-bottom"
+        className="jass-line-area jass-line-bottom"
         onClick={(e) => { e.stopPropagation(); onLineClick(teamIndex, 2); }}
       >
-        <TallyMarks count={team.twenties} type="twenty" />
+        <div className="jass-tally-on-line">
+          <TallyMarks count={team.twenties} type="twenty" />
+        </div>
         {team.rest > 0 && <span className="jass-rest-number">{team.rest}</span>}
       </div>
     </div>

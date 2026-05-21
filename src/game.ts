@@ -170,14 +170,35 @@ export const applyRound = (
     winners = [...(hackerWon ? [input.hackerId] : []), ...goingAlongWon];
     losers = [...(hackerWon ? [] : [input.hackerId]), ...goingAlongLost];
     if (winners.length > 0 && potTotalBefore > 0) {
-      const per = round2(potTotalBefore / winners.length);
-      let distributed = 0;
-      winners.forEach((wid, i) => {
-        const share = i === winners.length - 1 ? round2(potTotalBefore - distributed) : per;
-        winnerShares[wid] = share;
-        transfers.push(...distributeShareFromPot(workingPot, share, wid));
-        distributed = round2(distributed + share);
-      });
+      if (hackerWon && goingAlongWon.length > 0) {
+        // Hacker gewinnt + einige Mitspieler gewinnen: 2/3 für Hacker, 1/3 für gewinnende Mitspieler
+        const hackerShare = round2((potTotalBefore * 2) / 3);
+        const restTotal = round2(potTotalBefore - hackerShare);
+        const perGoer = round2(restTotal / goingAlongWon.length);
+        winnerShares[input.hackerId] = hackerShare;
+        transfers.push(...distributeShareFromPot(workingPot, hackerShare, input.hackerId));
+        let distributed = 0;
+        goingAlongWon.forEach((wid, i) => {
+          const share = i === goingAlongWon.length - 1 ? round2(restTotal - distributed) : perGoer;
+          winnerShares[wid] = share;
+          transfers.push(...distributeShareFromPot(workingPot, share, wid));
+          distributed = round2(distributed + share);
+        });
+      } else if (hackerWon) {
+        // Nur Hacker gewinnt, alle Mitspieler verlieren: Hacker erhält ganzen Pot
+        winnerShares[input.hackerId] = potTotalBefore;
+        transfers.push(...distributeShareFromPot(workingPot, potTotalBefore, input.hackerId));
+      } else {
+        // Hacker verliert, gewinnende Mitspieler teilen den Pot gleichmässig
+        const per = round2(potTotalBefore / goingAlongWon.length);
+        let distributed = 0;
+        goingAlongWon.forEach((wid, i) => {
+          const share = i === goingAlongWon.length - 1 ? round2(potTotalBefore - distributed) : per;
+          winnerShares[wid] = share;
+          transfers.push(...distributeShareFromPot(workingPot, share, wid));
+          distributed = round2(distributed + share);
+        });
+      }
     }
   }
   let potAfter: Pot;
