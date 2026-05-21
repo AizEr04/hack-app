@@ -223,7 +223,7 @@ export const computeBalances = (state: GameState): Record<PlayerId, number> => {
   const b: Record<PlayerId, number> = {};
   for (const p of state.players) b[p.id] = 0;
 
-  // Spielstand basiert ausschliesslich auf effektiven Geldflüssen zwischen Spielern.
+   // Spielstand basiert ausschliesslich auf effektiven Geldflüssen zwischen Spielern.
   // Pot-Beiträge und Pot-Zustand beeinflussen den Spielstand nicht direkt.
   for (const r of state.rounds) {
     for (const t of r.transfers) {

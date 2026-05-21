@@ -1,0 +1,454 @@
+/* ===== Jasstafel Styles ===== */
+
+.jass-container {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.jass-half {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jass-half-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jass-half-content.rotated {
+  transform: rotate(180deg);
+}
+
+/* Mittellinie – dick und rot */
+.jass-divider {
+  height: 6px;
+  background: #dc2626;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.4);
+}
+
+/* Gesamtpunktzahl im Hintergrund */
+.jass-total-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(80px, 22vw, 180px);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  z-index: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+}
+
+/* Z-Shape SVG Wrapper */
+.jass-z-wrapper {
+  position: absolute;
+  inset: 8px;
+  z-index: 1;
+}
+
+.jass-z-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Clickable areas overlaying the SVG lines */
+.jass-z-area {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.jass-z-area:active {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.jass-z-area-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16%;
+  align-items: flex-end;
+  padding-bottom: 2px;
+}
+
+.jass-z-area-diagonal {
+  top: 38%;
+  left: 8%;
+  right: 8%;
+  height: 18%;
+  align-items: center;
+}
+
+.jass-z-area-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 16%;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+/* Rest number */
+.jass-rest-number {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  z-index: 3;
+}
+
+/* ===== Tally Marks ===== */
+
+.tally-group-container {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.tally-five {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 4px;
+  height: 28px;
+}
+
+.tally-stick {
+  width: 2.5px;
+  height: 24px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+.tally-diagonal {
+  position: absolute;
+  width: calc(100% + 6px);
+  height: 2.5px;
+  background: #fff;
+  top: 50%;
+  left: -3px;
+  transform: rotate(-25deg);
+  transform-origin: center;
+  border-radius: 1px;
+}
+
+.tally-fifty-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.tally-x {
+  position: relative;
+  width: 18px;
+  height: 24px;
+}
+
+.tally-x-line1,
+.tally-x-line2 {
+  position: absolute;
+  width: 2.5px;
+  height: 100%;
+  background: #fff;
+  left: 50%;
+  top: 0;
+  border-radius: 1px;
+}
+
+.tally-x-line1 {
+  transform: translateX(-50%) rotate(20deg);
+}
+
+.tally-x-line2 {
+  transform: translateX(-50%) rotate(-20deg);
+}
+
+.tally-x-single .tally-x-line1 {
+  transform: translateX(-50%) rotate(0deg);
+}
+
+/* ===== Menu ===== */
+
+.jass-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.jass-menu {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(20, 20, 20, 0.97);
+  border-radius: 16px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.jass-menu-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 68px;
+}
+
+.jass-menu-btn:active {
+  background: rgba(220, 38, 38, 0.3);
+  transform: scale(0.95);
+}
+
+.jass-menu-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.jass-menu-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ===== Score Input Modal ===== */
+
+.jass-score-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.jass-score-modal {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  max-width: 300px;
+  position: relative;
+}
+
+.jass-score-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.jass-score-swap {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: #999;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.jass-score-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.jass-score-box {
+  border: 2px solid #b8860b;
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-width: 64px;
+  text-align: center;
+}
+
+.jass-score-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.jass-score-active {
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.jass-score-other {
+  color: #666;
+  font-size: 15px;
+}
+
+.jass-match-btn {
+  background: none;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: #aaa;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jass-match-btn.jass-match-active {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* Multiplier */
+.jass-multiplier-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.jass-mult-btn {
+  flex: 1;
+  padding: 6px 2px;
+  border-radius: 14px;
+  border: 1px solid #3a3a3a;
+  background: transparent;
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jass-mult-btn.jass-mult-active {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+/* Numpad */
+.jass-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.jass-numpad-btn {
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  background: #2c2c2e;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-align: center;
+}
+
+.jass-numpad-btn:active {
+  background: #48484a;
+  transform: scale(0.96);
+}
+
+.jass-numpad-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.jass-numpad-empty {
+  background: transparent;
+  cursor: default;
+}
+
+.jass-numpad-empty:active {
+  background: transparent;
+  transform: none;
+}
+
+/* Action buttons */
+.jass-score-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.jass-action-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jass-action-cancel {
+  background: #2c2c2e;
+  color: #aaa;
+}
+
+.jass-action-cancel:active {
+  background: #3a3a3c;
+}
+
+.jass-action-ok {
+  background: #3a3a3c;
+  color: #fff;
+}
+
+.jass-action-ok:active {
+  background: #48484a;
+}
+
+.jass-action-ok:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
