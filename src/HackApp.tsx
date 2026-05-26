@@ -6,6 +6,14 @@ import {
   computeNetFlows,
   createInitialState,
   formatCHF,
+  isGrundpot,
+  payGrundpot,
+  addPendingPlayer,
+  removePendingPlayer,
+  addPlayerImmediate,
+  removePlayerImmediate,
+  cancelPendingAddition,
+  cancelPendingRemoval,
   sumPot,
   validateRoundInput,
 } from './game';
@@ -160,13 +168,23 @@ function GameView({
   onBack: () => void;
 }) {
   const [showRound, setShowRound] = useState(false);
+  const [showGrundpot, setShowGrundpot] = useState(false);
+  const [showPlayerMgmt, setShowPlayerMgmt] = useState(false);
   const balances = useMemo(() => computeBalances(state), [state]);
   const netFlows = useMemo(() => computeNetFlows(state), [state]);
   const potTotal = sumPot(state.pot);
   const playerById = useMemo(
-    () => Object.fromEntries(state.players.map((p) => [p.id, p])),
-    [state.players],
+    () => Object.fromEntries([
+      ...state.players.map((p) => [p.id, p]),
+      ...(state.removedPlayers ?? []).map((p) => [p.id, p]),
+    ]),
+    [state.players, state.removedPlayers],
   );
+
+  const pendingAdditions = state.pendingAdditions ?? [];
+  const pendingRemovals = state.pendingRemovals ?? [];
+  const removedPlayerIds = new Set((state.removedPlayers ?? []).map((p) => p.id));
+  const allPlayersForDisplay = [...state.players, ...(state.removedPlayers ?? [])];
 
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-6 space-y-5">
@@ -206,24 +224,66 @@ function GameView({
         </div>
       </section>
 
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        <button onClick={() => setShowGrundpot(true)} className="btn-secondary flex-1 text-sm">
+          💰 Grundpot zahlen
+        </button>
+        <button onClick={() => setShowPlayerMgmt(true)} className="btn-secondary flex-1 text-sm">
+          👥 Spieler verwalten
+        </button>
+      </div>
+
+      {/* Pending changes info */}
+      {(pendingAdditions.length > 0 || pendingRemovals.length > 0) && (
+        <section className="card border-amber-500/30 bg-amber-900/10">
+          <h3 className="text-sm font-semibold text-amber-300 mb-2">Ausstehende Änderungen (ab nächstem Grundpot)</h3>
+          {pendingAdditions.length > 0 && (
+            <div className="text-sm text-white/70 mb-1">
+              <span className="text-emerald-300">+ Neu:</span>{' '}
+              {pendingAdditions.map((p) => p.name).join(', ')}
+            </div>
+          )}
+          {pendingRemovals.length > 0 && (
+            <div className="text-sm text-white/70">
+              <span className="text-red-300">− Entfernt:</span>{' '}
+              {pendingRemovals.map((id) => playerById[id]?.name ?? '?').join(', ')}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Balances */}
       <section className="card">
         <h2 className="font-display text-xl text-gold-light mb-3">Spielstand</h2>
         <div className="space-y-2">
-          {[...state.players]
+          {allPlayersForDisplay
+            .filter((p) => {
+              // Entfernte Spieler nur anzeigen wenn Balance != 0
+              if (removedPlayerIds.has(p.id)) {
+                return Math.abs(balances[p.id] ?? 0) > 0.001;
+              }
+              return true;
+            })
             .sort((a, b) => (balances[b.id] ?? 0) - (balances[a.id] ?? 0))
             .map((p, idx) => {
               const bal = balances[p.id] ?? 0;
               const positive = bal > 0;
+              const isRemoved = removedPlayerIds.has(p.id);
               return (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2"
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                    isRemoved ? 'bg-black/10 border border-white/5' : 'bg-black/20'
+                  }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="w-6 text-center text-white/40 tabular-nums">{idx + 1}.</span>
-                    <span className="font-medium">{p.name}</span>
-                    {idx === 0 && state.rounds.length > 0 && (
+                    <span className={`font-medium ${isRemoved ? 'text-white/50' : ''}`}>{p.name}</span>
+                    {isRemoved && (
+                      <span className="chip bg-white/10 text-white/40 text-xs">ausgestiegen</span>
+                    )}
+                    {!isRemoved && idx === 0 && state.rounds.length > 0 && (
                       <span className="chip bg-gold/20 text-gold-light">👑</span>
                     )}
                   </div>
@@ -298,6 +358,25 @@ function GameView({
               alert((e as Error).message);
             }
           }}
+        />
+      )}
+
+      {showGrundpot && (
+        <GrundpotModal
+          state={state}
+          onClose={() => setShowGrundpot(false)}
+          onConfirm={(playerId) => {
+            onChange(payGrundpot(state, playerId));
+            setShowGrundpot(false);
+          }}
+        />
+      )}
+
+      {showPlayerMgmt && (
+        <PlayerManagementModal
+          state={state}
+          onClose={() => setShowPlayerMgmt(false)}
+          onChange={(next) => onChange(next)}
         />
       )}
 
@@ -511,6 +590,253 @@ function RoundModal({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Grundpot Modal ---------------- */
+
+function GrundpotModal({
+  state,
+  onClose,
+  onConfirm,
+}: {
+  state: GameState;
+  onClose: () => void;
+  onConfirm: (playerId: PlayerId) => void;
+}) {
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerId>(state.players[0]?.id ?? '');
+  const grundpotAmount = state.config.baseBet * state.players.length;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-6 overflow-y-auto">
+      <div className="card w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl text-gold-light">Grundpot zahlen</h2>
+          <button onClick={onClose} className="btn-secondary px-3" aria-label="Schliessen">✕</button>
+        </div>
+
+        <p className="text-sm text-white/70 mb-4">
+          Wer hat falsch ausgeteilt? Der Spieler zahlt den Grundpot ({formatCHF(grundpotAmount)}) in den aktuellen Pot ein.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="label">Spieler auswählen</label>
+            <div className="grid grid-cols-2 gap-2">
+              {state.players.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPlayer(p.id)}
+                  className={`rounded-lg px-3 py-2 text-left border transition ${
+                    selectedPlayer === p.id
+                      ? 'bg-gold text-felt-dark border-gold font-semibold'
+                      : 'bg-black/30 border-white/10 hover:border-gold/50'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-black/30 px-3 py-2 text-sm flex justify-between">
+            <span className="text-white/60">Betrag:</span>
+            <span className="font-semibold tabular-nums">{formatCHF(grundpotAmount)}</span>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-secondary flex-1">Abbrechen</button>
+            <button
+              onClick={() => onConfirm(selectedPlayer)}
+              className="btn-primary flex-1"
+            >
+              Bestätigen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Player Management Modal ---------------- */
+
+function PlayerManagementModal({
+  state,
+  onClose,
+  onChange,
+}: {
+  state: GameState;
+  onClose: () => void;
+  onChange: (s: GameState) => void;
+}) {
+  const [newName, setNewName] = useState('');
+  const grundpotActive = isGrundpot(state);
+  const pendingAdditions = state.pendingAdditions ?? [];
+  const pendingRemovals = state.pendingRemovals ?? [];
+
+  const allCurrentNames = [
+    ...state.players.map((p) => p.name.toLowerCase()),
+    ...pendingAdditions.map((p) => p.name.toLowerCase()),
+  ];
+
+  const trimmedName = newName.trim();
+  const nameValid =
+    trimmedName.length > 0 &&
+    trimmedName.length <= 20 &&
+    !allCurrentNames.includes(trimmedName.toLowerCase());
+
+  const totalPlayersAfter = grundpotActive
+    ? state.players.length
+    : state.players.length + pendingAdditions.length - pendingRemovals.length;
+
+  const canAdd = nameValid && totalPlayersAfter < 7;
+  const canRemove = (playerId: PlayerId) => {
+    if (grundpotActive) return state.players.length > 2;
+    return !pendingRemovals.includes(playerId) && totalPlayersAfter > 2;
+  };
+
+  const handleAdd = () => {
+    if (!canAdd) return;
+    const player = { id: uid(), name: trimmedName };
+    if (grundpotActive) {
+      onChange(addPlayerImmediate(state, player));
+    } else {
+      onChange(addPendingPlayer(state, player));
+    }
+    setNewName('');
+  };
+
+  const handleRemove = (playerId: PlayerId) => {
+    if (!canRemove(playerId)) return;
+    if (grundpotActive) {
+      onChange(removePlayerImmediate(state, playerId));
+    } else {
+      onChange(removePendingPlayer(state, playerId));
+    }
+  };
+
+  const handleCancelAddition = (playerId: PlayerId) => {
+    onChange(cancelPendingAddition(state, playerId));
+  };
+
+  const handleCancelRemoval = (playerId: PlayerId) => {
+    onChange(cancelPendingRemoval(state, playerId));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-6 overflow-y-auto">
+      <div className="card w-full max-w-md max-h-[95vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl text-gold-light">Spieler verwalten</h2>
+          <button onClick={onClose} className="btn-secondary px-3" aria-label="Schliessen">✕</button>
+        </div>
+
+        {grundpotActive ? (
+          <p className="text-sm text-emerald-300 mb-4">
+            ✓ Grundpot aktiv – Änderungen werden sofort wirksam.
+          </p>
+        ) : (
+          <p className="text-sm text-amber-300 mb-4">
+            ⏳ Kein Grundpot – Änderungen werden ab dem nächsten Grundpot-Reset wirksam.
+          </p>
+        )}
+
+        {/* Current players */}
+        <div className="space-y-4">
+          <div>
+            <label className="label">Aktuelle Spieler ({state.players.length})</label>
+            <div className="space-y-2">
+              {state.players.map((p) => {
+                const isPendingRemoval = pendingRemovals.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                      isPendingRemoval ? 'bg-red-900/20 border border-red-500/30' : 'bg-black/20'
+                    }`}
+                  >
+                    <span className={isPendingRemoval ? 'line-through text-white/40' : ''}>
+                      {p.name}
+                    </span>
+                    {isPendingRemoval ? (
+                      <button
+                        onClick={() => handleCancelRemoval(p.id)}
+                        className="text-xs btn-secondary px-2 py-1"
+                      >
+                        Rückgängig
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRemove(p.id)}
+                        disabled={!canRemove(p.id)}
+                        className="btn-danger px-2 py-1 text-xs"
+                      >
+                        Entfernen
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pending additions (nur wenn kein Grundpot) */}
+          {!grundpotActive && pendingAdditions.length > 0 && (
+            <div>
+              <label className="label">Wird hinzugefügt (ab nächstem Grundpot)</label>
+              <div className="space-y-2">
+                {pendingAdditions.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg bg-emerald-900/20 border border-emerald-500/30 px-3 py-2"
+                  >
+                    <span className="text-emerald-300">{p.name}</span>
+                    <button
+                      onClick={() => handleCancelAddition(p.id)}
+                      className="text-xs btn-secondary px-2 py-1"
+                    >
+                      Rückgängig
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add new player */}
+          <div>
+            <label className="label">Neuen Spieler hinzufügen</label>
+            <div className="flex gap-2">
+              <input
+                className="input flex-1"
+                placeholder="Name"
+                value={newName}
+                maxLength={20}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              />
+              <button
+                onClick={handleAdd}
+                disabled={!canAdd}
+                className="btn-primary px-4"
+              >
+                +
+              </button>
+            </div>
+            {totalPlayersAfter >= 7 && (
+              <p className="mt-1 text-xs text-amber-300">Maximum 7 Spieler erreicht.</p>
+            )}
+            {trimmedName.length > 0 && !nameValid && totalPlayersAfter < 7 && (
+              <p className="mt-1 text-xs text-red-300">Name muss eindeutig sein (1–20 Zeichen).</p>
+            )}
+          </div>
+
+          <button onClick={onClose} className="btn-secondary w-full">Schliessen</button>
+        </div>
       </div>
     </div>
   );

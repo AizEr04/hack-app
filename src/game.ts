@@ -1,6 +1,7 @@
 import type {
   GameConfig,
   GameState,
+  GrundpotPayment,
   Player,
   PlayerId,
   Pot,
@@ -16,6 +17,18 @@ export const buildGrundpot = (players: Player[], config: GameConfig): Pot => {
   const pot: Pot = {};
   for (const p of players) pot[p.id] = round2(config.baseBet);
   return pot;
+};
+
+/** Prüft ob der aktuelle Pot ein Grundpot ist (jeder Spieler hat genau baseBet) */
+export const isGrundpot = (state: GameState): boolean => {
+  const { players, pot, config } = state;
+  const entries = Object.entries(pot).filter(([, amt]) => amt > 0);
+  if (entries.length !== players.length) return false;
+  const expected = round2(config.baseBet);
+  return entries.every(
+    ([pid, amt]) =>
+      players.some((p) => p.id === pid) && round2(amt) === expected,
+  );
 };
 export const createInitialState = (
   players: Player[],
@@ -120,7 +133,9 @@ export const applyRound = (
   if (input.goingAlong.length === 0) {
     transfers.push(...distributeShareFromPot(workingPot, potTotalBefore, input.hackerId));
     winnerShares[input.hackerId] = potTotalBefore;
-    const potAfter = buildGrundpot(state.players, state.config);
+    // Grundpot-Reset: pending player changes anwenden
+    const stateWithChanges = applyPendingPlayerChanges(state);
+    const potAfter = buildGrundpot(stateWithChanges.players, state.config);
     const record: RoundRecord = {
       index: state.rounds.length,
       hackerId: input.hackerId,
@@ -137,7 +152,7 @@ export const applyRound = (
       winnerShares,
     };
     return {
-      state: { ...state, pot: potAfter, rounds: [...state.rounds, record] },
+      state: { ...stateWithChanges, pot: potAfter, rounds: [...state.rounds, record] },
       record,
     };
   }
@@ -203,7 +218,28 @@ export const applyRound = (
   }
   let potAfter: Pot;
   if (allActiveWon) {
-    potAfter = buildGrundpot(state.players, state.config);
+    // Grundpot-Reset: pending player changes anwenden
+    const stateWithChanges = applyPendingPlayerChanges(state);
+    potAfter = buildGrundpot(stateWithChanges.players, state.config);
+    const record: RoundRecord = {
+      index: state.rounds.length,
+      hackerId: input.hackerId,
+      goingAlong: input.goingAlong,
+      tricks: { ...input.tricks },
+      potBefore,
+      potTotalBefore,
+      transfers,
+      loserPayments,
+      potAfter,
+      outcome,
+      winners,
+      losers,
+      winnerShares,
+    };
+    return {
+      state: { ...stateWithChanges, pot: potAfter, rounds: [...state.rounds, record] },
+      record,
+    };
   } else {
     potAfter = {};
     if (!hackerWon) {
@@ -217,7 +253,28 @@ export const applyRound = (
       loserPayments.push({ playerId: lid, amount: amt });
     }
     if (Object.keys(potAfter).length === 0) {
-      potAfter = buildGrundpot(state.players, state.config);
+      // Grundpot-Reset: pending player changes anwenden
+      const stateWithChanges = applyPendingPlayerChanges(state);
+      potAfter = buildGrundpot(stateWithChanges.players, state.config);
+      const record: RoundRecord = {
+        index: state.rounds.length,
+        hackerId: input.hackerId,
+        goingAlong: input.goingAlong,
+        tricks: { ...input.tricks },
+        potBefore,
+        potTotalBefore,
+        transfers,
+        loserPayments,
+        potAfter,
+        outcome,
+        winners,
+        losers,
+        winnerShares,
+      };
+      return {
+        state: { ...stateWithChanges, pot: potAfter, rounds: [...state.rounds, record] },
+        record,
+      };
     }
   }
   const record: RoundRecord = {
@@ -243,6 +300,8 @@ export const applyRound = (
 export const computeBalances = (state: GameState): Record<PlayerId, number> => {
   const b: Record<PlayerId, number> = {};
   for (const p of state.players) b[p.id] = 0;
+  // Auch entfernte Spieler berücksichtigen
+  for (const p of (state.removedPlayers ?? [])) b[p.id] = 0;
 
    // Spielstand basiert ausschliesslich auf effektiven Geldflüssen zwischen Spielern.
   // Pot-Beiträge und Pot-Zustand beeinflussen den Spielstand nicht direkt.
@@ -261,6 +320,8 @@ export const computeNetFlows = (
   // Berechne Gesamtbalance je Spieler: positive = erhält, negative = schuldet
   const balance: Record<PlayerId, number> = {};
   for (const p of state.players) balance[p.id] = 0;
+  // Auch entfernte Spieler berücksichtigen
+  for (const p of (state.removedPlayers ?? [])) balance[p.id] = 0;
 
   for (const r of state.rounds) {
     for (const t of r.transfers) {
@@ -313,3 +374,112 @@ export const formatCHF = (n: number): string =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
+
+/* ---- Grundpot zahlen (falsch austeilen) ---- */
+
+export const payGrundpot = (
+  state: GameState,
+  playerId: PlayerId,
+): GameState => {
+  const amount = round2(state.config.baseBet * state.players.length);
+  const newPot = { ...state.pot };
+  newPot[playerId] = round2((newPot[playerId] ?? 0) + amount);
+  const payment: GrundpotPayment = {
+    playerId,
+    amount,
+    timestamp: Date.now(),
+  };
+  return {
+    ...state,
+    pot: newPot,
+    grundpotPayments: [...(state.grundpotPayments ?? []), payment],
+  };
+};
+
+/* ---- Spieler hinzufügen / entfernen (pending) ---- */
+
+export const addPendingPlayer = (
+  state: GameState,
+  player: Player,
+): GameState => ({
+  ...state,
+  pendingAdditions: [...(state.pendingAdditions ?? []), player],
+});
+
+export const removePendingPlayer = (
+  state: GameState,
+  playerId: PlayerId,
+): GameState => ({
+  ...state,
+  pendingRemovals: [...(state.pendingRemovals ?? []), playerId],
+});
+
+/** Spieler direkt hinzufügen (bei Grundpot) – Pot wird neu berechnet */
+export const addPlayerImmediate = (
+  state: GameState,
+  player: Player,
+): GameState => {
+  const players = [...state.players, player];
+  const pot = buildGrundpot(players, state.config);
+  return { ...state, players, pot };
+};
+
+/** Spieler direkt entfernen (bei Grundpot) – Pot wird neu berechnet */
+export const removePlayerImmediate = (
+  state: GameState,
+  playerId: PlayerId,
+): GameState => {
+  const removed = state.players.find((p) => p.id === playerId);
+  const players = state.players.filter((p) => p.id !== playerId);
+  const pot = buildGrundpot(players, state.config);
+  const removedPlayers = removed
+    ? [...(state.removedPlayers ?? []), removed]
+    : (state.removedPlayers ?? []);
+  return { ...state, players, pot, removedPlayers };
+};
+
+export const cancelPendingAddition = (
+  state: GameState,
+  playerId: PlayerId,
+): GameState => ({
+  ...state,
+  pendingAdditions: (state.pendingAdditions ?? []).filter((p) => p.id !== playerId),
+});
+
+export const cancelPendingRemoval = (
+  state: GameState,
+  playerId: PlayerId,
+): GameState => ({
+  ...state,
+  pendingRemovals: (state.pendingRemovals ?? []).filter((id) => id !== playerId),
+});
+
+/** Wendet pending additions/removals an – wird beim nächsten Grundpot aufgerufen */
+export const applyPendingPlayerChanges = (
+  state: GameState,
+): GameState => {
+  let players = [...state.players];
+  const removals = state.pendingRemovals ?? [];
+  const additions = state.pendingAdditions ?? [];
+
+  // Entferne Spieler und merke sie in removedPlayers
+  let removedPlayers = [...(state.removedPlayers ?? [])];
+  if (removals.length > 0) {
+    const removedNow = players.filter((p) => removals.includes(p.id));
+    removedPlayers = [...removedPlayers, ...removedNow];
+    players = players.filter((p) => !removals.includes(p.id));
+  }
+
+  // Füge neue Spieler hinzu
+  if (additions.length > 0) {
+    players = [...players, ...additions];
+  }
+
+  return {
+    ...state,
+    players,
+    removedPlayers,
+    pendingAdditions: [],
+    pendingRemovals: [],
+  };
+};

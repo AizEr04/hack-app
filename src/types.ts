@@ -40,12 +40,25 @@ export interface RoundRecord {
   winnerShares: Record<PlayerId, number>;
 }
 
+export interface GrundpotPayment {
+  playerId: PlayerId;
+  amount: number;
+  timestamp: number;
+}
+
 export interface GameState {
   version: 1;
   players: Player[];
+  /** Spieler die das Spiel verlassen haben (für Schulden/Guthaben-Anzeige) */
+  removedPlayers?: Player[];
+  /** Spieler die ab dem nächsten Grundpot hinzugefügt werden */
+  pendingAdditions?: Player[];
+  /** Spieler-IDs die ab dem nächsten Grundpot entfernt werden */
+  pendingRemovals?: PlayerId[];
   config: GameConfig;
   pot: Pot;
   rounds: RoundRecord[];
+  grundpotPayments?: GrundpotPayment[];
   createdAt: number;
 }
 
