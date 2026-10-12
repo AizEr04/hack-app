@@ -32,6 +32,8 @@ export interface JassRoundEntry {
 
 export interface JassGameState {
   version: 1;
+  /** Teamnamen (optional für ältere Stände) */
+  teamNames?: [string, string];
   /** Tally-Striche pro Team – werden NICHT aus Total berechnet, sondern direkt geschrieben */
   teams: [JassTeamState, JassTeamState];
   /** Gesamtpunktzahl pro Team (Summe aller Punkte) */

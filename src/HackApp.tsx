@@ -7,6 +7,7 @@ import {
   createInitialState,
   formatCHF,
   isGrundpot,
+  normalizeState,
   payGrundpot,
   addPendingPlayer,
   removePendingPlayer,
@@ -36,7 +37,7 @@ export default function HackApp({ onBack }: { onBack: () => void }) {
   return (
     <GameView
       state={state}
-      onChange={setState}
+      onChange={(s) => setState(normalizeState(s))}
       onReset={() => {
         if (confirm('Neues Spiel starten? Aktueller Spielstand wird gelöscht.')) setState(null);
       }}
@@ -227,10 +228,10 @@ function GameView({
       {/* Action Buttons */}
       <div className="flex gap-2">
         <button onClick={() => setShowGrundpot(true)} className="btn-secondary flex-1 text-sm">
-          💰 Grundpot zahlen
+           Grundpot zahlen
         </button>
         <button onClick={() => setShowPlayerMgmt(true)} className="btn-secondary flex-1 text-sm">
-          👥 Spieler verwalten
+           Spieler verwalten
         </button>
       </div>
 
@@ -256,6 +257,9 @@ function GameView({
       {/* Balances */}
       <section className="card">
         <h2 className="font-display text-xl text-gold-light mb-3">Spielstand</h2>
+        <p className="mb-3 text-xs text-white/50">
+          Bereits verteilte Geldflüsse plus offener Pot-Anteil. Ein neutraler Grundpot zählt noch nicht als Verlust.
+        </p>
         <div className="space-y-2">
           {allPlayersForDisplay
             .filter((p) => {
@@ -284,7 +288,7 @@ function GameView({
                       <span className="chip bg-white/10 text-white/40 text-xs">ausgestiegen</span>
                     )}
                     {!isRemoved && idx === 0 && state.rounds.length > 0 && (
-                      <span className="chip bg-gold/20 text-gold-light">👑</span>
+                      <span className="chip bg-gold/20 text-gold-light"></span>
                     )}
                   </div>
                   <span
@@ -701,7 +705,11 @@ function PlayerManagementModal({
 
   const handleAdd = () => {
     if (!canAdd) return;
-    const player = { id: uid(), name: trimmedName };
+    // Ausgestiegener Spieler mit gleichem Namen → gleiche Identität reaktivieren (kein Duplikat)
+    const former = (state.removedPlayers ?? []).find(
+      (p) => p.name.toLowerCase() === trimmedName.toLowerCase(),
+    );
+    const player = former ?? { id: uid(), name: trimmedName };
     if (grundpotActive) {
       onChange(addPlayerImmediate(state, player));
     } else {
@@ -853,6 +861,9 @@ function RoundSummary({
 }) {
   const r = record;
   const hackerName = playerById[r.hackerId]?.name ?? '?';
+  const potEntries = Object.entries(r.potBefore)
+    .filter(([, a]) => a > 0)
+    .sort((a, b) => b[1] - a[1]);
   const label =
     r.outcome.kind === 'no-going-along'
       ? 'Niemand mit'
@@ -862,15 +873,38 @@ function RoundSummary({
 
   return (
     <details className="rounded-lg bg-black/20 px-3 py-2 text-sm">
-      <summary className="cursor-pointer flex items-center justify-between gap-2">
-        <span>
-          <span className="text-white/40">#{r.index + 1}</span>{' '}
-          <span className="font-semibold">{hackerName}</span> hackt ·{' '}
-          <span className="text-white/60">{label}</span>
-        </span>
-        <span className="tabular-nums text-white/60">Pot {formatCHF(r.potTotalBefore)}</span>
+      <summary className="cursor-pointer">
+        <div className="flex items-center justify-between gap-2">
+          <span>
+            <span className="text-white/40">#{r.index + 1}</span>{' '}
+            <span className="font-semibold">{hackerName}</span> hackt ·{' '}
+            <span className="text-white/60">{label}</span>
+          </span>
+          <span className="tabular-nums text-white/60">Pot {formatCHF(r.potTotalBefore)}</span>
+        </div>
+        <div className="mt-0.5 text-xs text-white/50">
+          Im Pot:{' '}
+          {potEntries
+            .map(([id, a]) => `${playerById[id]?.name ?? '?'} ${formatCHF(a)}`)
+            .join(' · ')}
+        </div>
       </summary>
       <div className="mt-2 space-y-1.5 text-xs">
+        <div>
+          <div className="text-white/50 mb-1">Pot-Zusammensetzung:</div>
+          <ul className="space-y-0.5">
+            {potEntries.map(([id, amt]) => (
+              <li key={id} className="flex justify-between">
+                <span>{playerById[id]?.name ?? '?'}</span>
+                <span className="tabular-nums">{formatCHF(amt)}</span>
+              </li>
+            ))}
+            <li className="flex justify-between border-t border-white/10 pt-0.5 font-semibold">
+              <span>Total</span>
+              <span className="tabular-nums">{formatCHF(r.potTotalBefore)}</span>
+            </li>
+          </ul>
+        </div>
         {r.goingAlong.length > 0 && (
           <div>
             <span className="text-white/50">Mit:</span>{' '}

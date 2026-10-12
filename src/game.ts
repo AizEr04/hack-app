@@ -19,8 +19,21 @@ export const buildGrundpot = (players: Player[], config: GameConfig): Pot => {
   return pot;
 };
 
-/** Prüft ob der aktuelle Pot ein Grundpot ist (jeder Spieler hat genau baseBet) */
+/**
+ * Liegt im aktuellen Pot eine neutrale Grundpot-Schicht?
+ * Deterministisch aus der Historie abgeleitet (nicht aus Beträgen geraten):
+ * - Spielstart oder letzte Runde war "alle gewinnen" / "niemand mit" → Grundpot-Reset
+ * - letzte Runde "gemischt" → Pot besteht nur aus Verlierer-Einzahlungen
+ */
+export const hasNeutralGrundpotLayer = (state: GameState): boolean => {
+  const last = state.rounds[state.rounds.length - 1];
+  if (!last) return true;
+  return last.outcome.kind !== 'mixed';
+};
+
+/** Prüft ob der aktuelle Pot ein reiner Grundpot ist (jeder Spieler hat genau baseBet) */
 export const isGrundpot = (state: GameState): boolean => {
+  if (!hasNeutralGrundpotLayer(state)) return false;
   const { players, pot, config } = state;
   const entries = Object.entries(pot).filter(([, amt]) => amt > 0);
   if (entries.length !== players.length) return false;
@@ -297,38 +310,36 @@ export const applyRound = (
     record,
   };
 };
-export const computeBalances = (state: GameState): Record<PlayerId, number> => {
-  const b: Record<PlayerId, number> = {};
-  for (const p of state.players) b[p.id] = 0;
-  // Auch entfernte Spieler berücksichtigen
-  for (const p of (state.removedPlayers ?? [])) b[p.id] = 0;
 
-   // Spielstand basiert ausschliesslich auf effektiven Geldflüssen zwischen Spielern.
-  // Pot-Beiträge und Pot-Zustand beeinflussen den Spielstand nicht direkt.
+const createBalanceMap = (state: GameState): Record<PlayerId, number> => {
+  const balances: Record<PlayerId, number> = {};
+  for (const p of state.players) balances[p.id] = 0;
+  for (const p of state.removedPlayers ?? []) balances[p.id] = 0;
+  return balances;
+};
+
+const computeSettledBalances = (state: GameState): Record<PlayerId, number> => {
+  const balances = createBalanceMap(state);
   for (const r of state.rounds) {
     for (const t of r.transfers) {
-      b[t.from] = round2((b[t.from] ?? 0) - t.amount);
-      b[t.to] = round2((b[t.to] ?? 0) + t.amount);
+      balances[t.from] = round2((balances[t.from] ?? 0) - t.amount);
+      balances[t.to] = round2((balances[t.to] ?? 0) + t.amount);
     }
   }
+  return balances;
+};
 
-  return b;
+export const computeBalances = (state: GameState): Record<PlayerId, number> => {
+  // Geld im Pot gilt als "investiert" und beeinflusst den Spielstand erst,
+  // wenn der neue Besitzer feststeht (also über die Transfers einer Runde).
+  return computeSettledBalances(state);
 };
 export const computeNetFlows = (
   state: GameState,
 ): { from: PlayerId; to: PlayerId; amount: number }[] => {
-  // Berechne Gesamtbalance je Spieler: positive = erhält, negative = schuldet
-  const balance: Record<PlayerId, number> = {};
-  for (const p of state.players) balance[p.id] = 0;
-  // Auch entfernte Spieler berücksichtigen
-  for (const p of (state.removedPlayers ?? [])) balance[p.id] = 0;
-
-  for (const r of state.rounds) {
-    for (const t of r.transfers) {
-      balance[t.from] = round2((balance[t.from] ?? 0) - t.amount);
-      balance[t.to] = round2((balance[t.to] ?? 0) + t.amount);
-    }
-  }
+  // Netto-Geldflüsse zeigen nur bereits aufgelöste Transfers zwischen Spielern,
+  // nicht den noch offenen Pot.
+  const balance = computeSettledBalances(state);
 
   // Separiere Debtors (schulden) und Creditors (erhalten)
   const debtors: Array<{ id: PlayerId; amount: number }> = [];
@@ -401,27 +412,32 @@ export const payGrundpot = (
 export const addPendingPlayer = (
   state: GameState,
   player: Player,
-): GameState => ({
-  ...state,
-  pendingAdditions: [...(state.pendingAdditions ?? []), player],
-});
+): GameState => {
+  const existing = state.pendingAdditions ?? [];
+  if (existing.some((p) => p.id === player.id)) return state;
+  return { ...state, pendingAdditions: [...existing, player] };
+};
 
 export const removePendingPlayer = (
   state: GameState,
   playerId: PlayerId,
-): GameState => ({
-  ...state,
-  pendingRemovals: [...(state.pendingRemovals ?? []), playerId],
-});
+): GameState => {
+  const existing = state.pendingRemovals ?? [];
+  if (existing.includes(playerId)) return state;
+  return { ...state, pendingRemovals: [...existing, playerId] };
+};
 
-/** Spieler direkt hinzufügen (bei Grundpot) – Pot wird neu berechnet */
+/** Spieler direkt hinzufügen (bei Grundpot) – Pot wird neu berechnet.
+ *  Ein früher ausgestiegener Spieler (gleiche ID) wird reaktiviert, nicht dupliziert. */
 export const addPlayerImmediate = (
   state: GameState,
   player: Player,
 ): GameState => {
+  if (state.players.some((p) => p.id === player.id)) return state;
   const players = [...state.players, player];
   const pot = buildGrundpot(players, state.config);
-  return { ...state, players, pot };
+  const removedPlayers = (state.removedPlayers ?? []).filter((p) => p.id !== player.id);
+  return { ...state, players, pot, removedPlayers };
 };
 
 /** Spieler direkt entfernen (bei Grundpot) – Pot wird neu berechnet */
@@ -470,9 +486,13 @@ export const applyPendingPlayerChanges = (
     players = players.filter((p) => !removals.includes(p.id));
   }
 
-  // Füge neue Spieler hinzu
+  // Füge neue Spieler hinzu (ohne Duplikate; reaktivierte Spieler verlassen removedPlayers)
   if (additions.length > 0) {
-    players = [...players, ...additions];
+    const have = new Set(players.map((p) => p.id));
+    const fresh = additions.filter((p) => !have.has(p.id));
+    players = [...players, ...fresh];
+    const addedIds = new Set(fresh.map((p) => p.id));
+    removedPlayers = removedPlayers.filter((p) => !addedIds.has(p.id));
   }
 
   return {
@@ -482,4 +502,31 @@ export const applyPendingPlayerChanges = (
     pendingAdditions: [],
     pendingRemovals: [],
   };
+};
+/* ---- Zustands-Normalisierung (Konsistenz-Garantie) ---- */
+const uniqueById = (list: Player[] | undefined, exclude: Set<PlayerId>): Player[] => {
+  const seen = new Set<PlayerId>(exclude);
+  const out: Player[] = [];
+  for (const p of list ?? []) {
+    if (!p || typeof p.id !== 'string' || seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+};
+/**
+ * Stellt Invarianten sicher (idempotent, auch für ältere gespeicherte Stände):
+ * - jede Spieler-ID kommt in genau einer Liste vor (aktiv / ausgestiegen)
+ * - keine doppelten ausstehenden Hinzufügungen/Entfernungen
+ * - ausstehende Entfernungen verweisen nur auf aktive Spieler
+ */
+export const normalizeState = (state: GameState): GameState => {
+  const players = uniqueById(state.players, new Set());
+  const active = new Set(players.map((p) => p.id));
+  const removedPlayers = uniqueById(state.removedPlayers, active);
+  const pendingAdditions = uniqueById(state.pendingAdditions, active);
+  const pendingRemovals = Array.from(new Set(state.pendingRemovals ?? [])).filter((id) =>
+    active.has(id),
+  );
+  return { ...state, players, removedPlayers, pendingAdditions, pendingRemovals };
 };

@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(220, 38, 38, 0.3);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.7);
   flex-shrink: 0;
 }
 
@@ -184,3 +184,86 @@
   margin-top: -8px;
   margin-bottom: 12px;
 }
+
+/* Eigene Ansage = fett/weiss, Gegenpunkte (Reihe des Teams noch offen) = gedämpft, Zelle bleibt klickbar */
+.coiffeur-announced {
+  color: #fff;
+  font-weight: 700;
+}
+
+.coiffeur-gained {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.coiffeur-free {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+/* ===== Kontrast-Verbesserungen ===== */
+.coiffeur-header { border-bottom-color: rgba(239, 68, 68, 0.7); }
+.coiffeur-back-btn, .coiffeur-title, .coiffeur-action-btn { color: #ef4444; }
+.coiffeur-action-btn { border-color: rgba(239, 68, 68, 0.6); }
+.coiffeur-th {
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom-color: rgba(239, 68, 68, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coiffeur-td { border-bottom-color: rgba(255, 255, 255, 0.25); }
+.coiffeur-td-trumpf { color: #fff; }
+.coiffeur-td-mult { font-size: 14px; color: rgba(255, 255, 255, 0.85); }
+.coiffeur-empty { color: rgba(255, 255, 255, 0.5); }
+.coiffeur-match { color: #ef4444; }
+.coiffeur-total-row { border-top-color: rgba(239, 68, 68, 0.8); }
+.coiffeur-input-team { color: rgba(255, 255, 255, 0.85); }
+.coiffeur-select {
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 4px 2px;
+  max-width: 100%;
+}
+/* ===== Spalten: Team | Trumpf (mit Multiplikator) | Team ===== */
+.coiffeur-th-team { width: 35%; }
+.coiffeur-th-trumpf { width: 30%; }
+.coiffeur-mult {
+  display: inline-block;
+  min-width: 2.2em;
+  margin-right: 4px;
+  font-weight: 700;
+  color: #ef4444;
+}
+.coiffeur-trumpf-label { white-space: nowrap; }
+/* ===== Gespielt / offen pro Team ===== */
+.coiffeur-cell-done {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 3px 0 0 #fff;
+}
+.coiffeur-cell-open .coiffeur-gained,
+.coiffeur-cell-open .coiffeur-empty {
+  color: rgba(255, 255, 255, 0.55);
+}
+.coiffeur-check {
+  margin-right: 6px;
+  font-weight: 700;
+  color: #4ade80;
+}
+.coiffeur-open-mark {
+  margin-right: 6px;
+  color: rgba(255, 255, 255, 0.5);
+}
+/* Dropdown-Reihen: Multiplikator und Auswahl in einer Zeile */
+.coiffeur-td-trumpf { white-space: nowrap; }
+.coiffeur-free {
+  display: inline-flex;
+  vertical-align: middle;
+  max-width: calc(100% - 3em);
+}
+.coiffeur-free .coiffeur-trumpf-emoji { display: none; }
+.coiffeur-select { min-width: 0; width: 100%; text-overflow: ellipsis; }

@@ -1,0 +1,111 @@
+/* ===== Startbildschirm (Schieber & Coiffeur) ===== */
+.jass-start {
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.jass-start-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.jass-start-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.jass-start-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ef4444;
+  text-align: center;
+}
+
+.jass-start-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.jass-start-input {
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  padding: 10px 12px;
+}
+
+.jass-start-input:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+.jass-start-rounds {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.jass-start-round {
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.jass-start-round-active {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.jass-start-go {
+  background: #dc2626;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.jass-start-go:active {
+  transform: scale(0.98);
+}
+
+/* Teamname in der Schieber-Tafel */
+.jass-team-name {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  z-index: 1;
+}
+

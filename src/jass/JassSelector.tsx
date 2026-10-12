@@ -67,7 +67,7 @@ export default function JassSelector({ onBack }: { onBack: () => void }) {
         >
           <div className="text-4xl">💇</div>
           <div className="font-display text-xl text-red-500">Coiffeur</div>
-          <p className="text-sm text-white/60">8 Trumpfarten mit Multiplikator</p>
+          <p className="text-sm text-white/60">9–12 Trümpfe mit Multiplikator</p>
         </button>
       </div>
     </div>

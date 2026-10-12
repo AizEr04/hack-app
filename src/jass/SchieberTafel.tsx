@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JassGameState, TeamIndex } from './types';
-import { addWyss, clearTafel, createInitialJassState, getTeamTotal, undoLast, writePoints } from './logic';
+import { addWyss, createInitialJassState, getTeamTotal, undoLast, writePoints } from './logic';
 import { loadJassState, saveJassState } from './storage';
 import { ScoreInput } from './ScoreInput';
 import { ZShapeSVG } from './ZShapeSVG';
+import { JassStartScreen } from './JassStartScreen';
 import './jass.css';
 
 export default function SchieberTafel({ onBack }: { onBack: () => void }) {
-  const [state, setState] = useState<JassGameState>(() => loadJassState() ?? createInitialJassState());
+  const [state, setState] = useState<JassGameState | null>(loadJassState);
+  const [lastNames, setLastNames] = useState<[string, string] | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scoreInput, setScoreInput] = useState<{ team: TeamIndex } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,24 +62,36 @@ export default function SchieberTafel({ onBack }: { onBack: () => void }) {
   }, []);
 
   const handleWyss = useCallback((team: TeamIndex, lineIndex: 0 | 1 | 2) => {
-    setState(prev => addWyss(prev, team, lineIndex));
+    setState(prev => (prev ? addWyss(prev, team, lineIndex) : prev));
   }, []);
 
   const handleScoreSubmit = useCallback((team: TeamIndex, points: number, multiplier: number, isMatch: boolean) => {
-    setState(prev => writePoints(prev, team, points, multiplier, isMatch));
+    setState(prev => (prev ? writePoints(prev, team, points, multiplier, isMatch) : prev));
     setScoreInput(null);
   }, []);
 
   const handleUndo = useCallback(() => {
-    setState(prev => undoLast(prev));
+    setState(prev => (prev ? undoLast(prev) : prev));
     setMenuOpen(false);
   }, []);
 
   const handleClear = useCallback(() => {
-    setState(clearTafel());
+    setLastNames(state?.teamNames);
+    setState(null);
     setMenuOpen(false);
-  }, []);
+  }, [state]);
 
+  if (!state) {
+    return (
+      <JassStartScreen
+        title="Schieber"
+        initialNames={lastNames}
+        onBack={onBack}
+        onStart={({ teamNames }) => setState(createInitialJassState(teamNames))}
+      />
+    );
+  }
+  const names = state.teamNames ?? (['Team 1', 'Team 2'] as [string, string]);
   const team0Total = getTeamTotal(state, 0);
   const team1Total = getTeamTotal(state, 1);
 
@@ -98,6 +112,7 @@ export default function SchieberTafel({ onBack }: { onBack: () => void }) {
         onMouseLeave={handleLongPressEnd}
       >
         <div className="jass-half-content rotated">
+          <div className="jass-team-name">{names[0]}</div>
           <div className="jass-total-bg">{team0Total}</div>
           <ZShapeSVG team={state.teams[0]} teamIndex={0} onLineClick={handleWyss} />
         </div>
@@ -130,6 +145,7 @@ export default function SchieberTafel({ onBack }: { onBack: () => void }) {
         onMouseLeave={handleLongPressEnd}
       >
         <div className="jass-half-content">
+          <div className="jass-team-name">{names[1]}</div>
           <div className="jass-total-bg">{team1Total}</div>
           <ZShapeSVG team={state.teams[1]} teamIndex={1} onLineClick={handleWyss} />
         </div>

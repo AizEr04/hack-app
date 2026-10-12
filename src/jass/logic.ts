@@ -3,9 +3,10 @@ import type { JassGameState, JassRoundEntry, JassTeamState, TeamIndex } from './
 const MAX_ROUND_POINTS = 157;
 const MATCH_POINTS = 257;
 
-export function createInitialJassState(): JassGameState {
+export function createInitialJassState(teamNames?: [string, string]): JassGameState {
   return {
     version: 1,
+    teamNames,
     teams: [
       { hundreds: 0, fifties: 0, twenties: 0, rest: 0 },
       { hundreds: 0, fifties: 0, twenties: 0, rest: 0 },
@@ -174,13 +175,17 @@ export function undoLast(state: JassGameState): JassGameState {
   if (state.history.length === 0) return state;
 
   const newHistory = state.history.slice(0, -1);
-  return rebuildFromHistory(newHistory, state.createdAt);
+  return rebuildFromHistory(newHistory, state.createdAt, state.teamNames);
 }
 
 /**
  * Baut den gesamten State aus der History neu auf.
  */
-function rebuildFromHistory(history: JassRoundEntry[], createdAt: number): JassGameState {
+function rebuildFromHistory(
+  history: JassRoundEntry[],
+  createdAt: number,
+  teamNames?: [string, string],
+): JassGameState {
   let totals: [number, number] = [0, 0];
   const teams: [JassTeamState, JassTeamState] = [
     { hundreds: 0, fifties: 0, twenties: 0, rest: 0 },
@@ -232,6 +237,7 @@ function rebuildFromHistory(history: JassRoundEntry[], createdAt: number): JassG
 
   return {
     version: 1,
+    teamNames,
     teams,
     totals,
     history,
