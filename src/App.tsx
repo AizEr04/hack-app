@@ -2,15 +2,16 @@ import { useState } from 'react';
 import AppSelector from './AppSelector';
 import HackApp from './hack/HackApp';
 import JassTafel from './jass/JassTafel';
+import ScoreboardApp from './scoreboard/ScoreboardApp';
 
-type AppView = 'selector' | 'hack' | 'jass';
+type AppView = 'selector' | 'hack' | 'jass' | 'scoreboard';
 
 const STORAGE_KEY = 'app:last-view';
 
 function getInitialView(): AppView {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'hack' || saved === 'jass') return saved;
+    if (saved === 'hack' || saved === 'jass' || saved === 'scoreboard') return saved;
   } catch {
     /* ignore */
   }
@@ -39,6 +40,8 @@ export default function App() {
       return <HackApp onBack={() => navigate('selector')} />;
     case 'jass':
       return <JassTafel onBack={() => navigate('selector')} />;
+    case 'scoreboard':
+      return <ScoreboardApp onBack={() => navigate('selector')} />;
     case 'selector':
     default:
       return <AppSelector onSelect={(app) => navigate(app)} />;

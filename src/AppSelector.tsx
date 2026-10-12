@@ -1,5 +1,5 @@
 interface AppSelectorProps {
-  onSelect: (app: 'hack' | 'jass') => void;
+  onSelect: (app: 'hack' | 'jass' | 'scoreboard') => void;
 }
 
 export default function AppSelector({ onSelect }: AppSelectorProps) {
@@ -27,6 +27,15 @@ export default function AppSelector({ onSelect }: AppSelectorProps) {
           <div className="text-4xl">📋</div>
           <div className="font-display text-xl text-red-500">Jasstafel</div>
           <p className="text-sm text-white/60">Schieber-Tafel</p>
+        </button>
+
+        <button
+          onClick={() => onSelect('scoreboard')}
+          className="card hover:border-sky-400/50 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-center space-y-3 p-8 sm:col-span-2"
+        >
+          <div className="text-4xl">🏆</div>
+          <div className="font-display text-xl text-sky-300">Scoreboard</div>
+          <p className="text-sm text-white/60">Ranglisten für jede Sportart &amp; jedes Spiel</p>
         </button>
       </div>
 
