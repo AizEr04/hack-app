@@ -10,7 +10,7 @@ import {
   normalizeState,
   payGrundpot,
   removePlayerImmediate,
-} from '../src/game.ts';
+} from '../src/hack/game.ts';
 
 const players = [
   { id: 'a', name: 'A' },

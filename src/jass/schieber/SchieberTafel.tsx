@@ -4,8 +4,8 @@ import { addWyss, createInitialJassState, getTeamTotal, undoLast, writePoints } 
 import { loadJassState, saveJassState } from './storage';
 import { ScoreInput } from './ScoreInput';
 import { ZShapeSVG } from './ZShapeSVG';
-import { JassStartScreen } from './JassStartScreen';
-import './jass.css';
+import { JassStartScreen } from '../JassStartScreen';
+import '../jass.css';
 
 export default function SchieberTafel({ onBack }: { onBack: () => void }) {
   const [state, setState] = useState<JassGameState | null>(loadJassState);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import AppSelector from './AppSelector';
-import HackApp from './HackApp';
+import HackApp from './hack/HackApp';
 import JassTafel from './jass/JassTafel';
 
 type AppView = 'selector' | 'hack' | 'jass';

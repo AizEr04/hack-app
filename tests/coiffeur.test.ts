@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultRowKinds, isFreeRow } from '../src/jass/coiffeur-types.ts';
+import { defaultRowKinds, isFreeRow } from '../src/jass/coiffeur/coiffeur-types.ts';
 import {
   createInitialCoiffeurState,
   getCellScore,
   setRowKind,
   undoCoiffeurLast,
   writeCoiffeurPoints,
-} from '../src/jass/coiffeur-logic.ts';
+} from '../src/jass/coiffeur/coiffeur-logic.ts';
 
 const names: [string, string] = ['A', 'B'];
 

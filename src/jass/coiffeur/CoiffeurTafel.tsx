@@ -11,7 +11,8 @@ import {
 } from './coiffeur-logic';
 import { loadCoiffeurState, saveCoiffeurState } from './coiffeur-storage';
 import { CoiffeurScoreInput } from './CoiffeurScoreInput';
-import { JassStartScreen } from './JassStartScreen';
+import { JassStartScreen } from '../JassStartScreen';
+import '../jass.css';
 import './coiffeur.css';
 
 export default function CoiffeurTafel({ onBack }: { onBack: () => void }) {

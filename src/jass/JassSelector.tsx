@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import SchieberTafel from './SchieberTafel';
-import CoiffeurTafel from './CoiffeurTafel';
+import SchieberTafel from './schieber/SchieberTafel';
+import CoiffeurTafel from './coiffeur/CoiffeurTafel';
 
 type JassMode = 'selector' | 'schieber' | 'coiffeur';
 

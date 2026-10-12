@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MAX_ROUNDS, MIN_ROUNDS } from './coiffeur-types';
+import { MAX_ROUNDS, MIN_ROUNDS } from './coiffeur/coiffeur-types';
 import './jass-start.css';
 
 export interface JassStartConfig {
